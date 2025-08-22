@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Contador de Manos Abiertas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <style>
+    body { margin: 0; text-align: center; }
+    canvas { position: absolute; left: 0; top: 0; }
+    video { transform: scaleX(-1); }
+  </style>
+</head>
+<body>
+  <h2>Contador de Manos Abiertas</h2>
+  <video id="video" width="640" height="480" autoplay></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <p id="counter">Repeticiones: 0</p>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const counterEl = document.getElementById('counter');
+
+    let contador = 0;
+    let manoAbiertaAnterior = false;
+
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'es-ES';
+      window.speechSynthesis.speak(msg);
+    }
+
+    function contarDedos(landmarks) {
+      const dedos = [];
+
+      if (landmarks[4].x < landmarks[3].x) dedos.push(1); else dedos.push(0); // Pulgar
+
+      [8, 12, 16, 20].forEach(id => {
+        if (landmarks[id].y < landmarks[id - 2].y) dedos.push(1); else dedos.push(0);
+      });
+
+      return dedos.reduce((a, b) => a + b, 0);
+    }
+
+    const hands = new Hands({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
+
+    hands.onResults(results => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+
+        drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
+        drawLandmarks(ctx, landmarks, { color: '#FF0000', lineWidth: 1 });
+
+        const dedos = contarDedos(landmarks);
+
+        if (dedos >= 5 && !manoAbiertaAnterior) {
+          contador++;
+          counterEl.textContent = `Repeticiones: ${contador}`;
+          speak(`Mano número ${contador}`);
+        }
+
+        manoAbiertaAnterior = dedos >= 5;
+      } else {
+        manoAbiertaAnterior = false;
+      }
+    });
+
+    const camera = new Camera(video, {
+      onFrame: async () => await hands.send({ image: video }),
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  </script>
+</body>
+</html>
