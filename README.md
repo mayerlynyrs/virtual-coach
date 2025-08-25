@@ -122,3 +122,34 @@ virtual-coach/
 ├── requirements.txt           # Dependencias del proyecto
 ├── main.py                    # Script principal para correr el sistema
 └── LICENSE                    # Licencia del proyecto (MIT)
+```
+
+### Construir la imagen Docker:
+En la terminal, navega al directorio donde se encuentra el Dockerfile y ejecuta el siguiente comando para construir la imagen:
+
+`docker build -t virtual-coach .`
+
+
+Esto descargará la imagen base de Python, instalará las dependencias de tu requirements.txt y copiará los archivos de tu proyecto al contenedor.
+
+### Ejecutar el contenedor:
+Una vez construida la imagen, puedes ejecutar el contenedor con el siguiente comando:
+
+`docker run --rm -it --device=/dev/video0 virtual-coach`
+
+
+--device=/dev/video0 es importante para que Docker pueda acceder a tu cámara. Si usas Windows, esto podría ser diferente, y necesitas verificar cómo Docker maneja el acceso a dispositivos en tu sistema. En sistemas Windows, puedes intentar --privileged o revisar la configuración de Docker para acceder a dispositivos.
+
+### Acceder a la cámara en Docker en Windows:
+En Windows, Docker corre dentro de una máquina virtual, lo que puede hacer que el acceso a la cámara sea un poco más complicado. Aquí hay algunas opciones para que Docker pueda acceder a la cámara:
+
+Habilitar dispositivos de cámara USB en Docker: Puedes intentar configurar Docker para usar dispositivos específicos de la cámara. Asegúrate de que Docker Desktop esté ejecutándose en modo WSL 2 si estás en Windows 11, ya que esto puede mejorar la compatibilidad con dispositivos.
+
+Probar con --privileged: A veces, Docker necesita privilegios adicionales para acceder a dispositivos. Puedes probar ejecutando con --privileged:
+
+`docker run --rm -it --privileged virtual-coach`
+
+### Alternativa: Docker Compose
+
+`docker-compose up --build`
+
