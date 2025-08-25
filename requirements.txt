@@ -30,3 +30,4 @@ sounddevice==0.5.2
 
 # alternativa web
 streamlit==1.48.1
+streamlit-webrtc==0.63.4
