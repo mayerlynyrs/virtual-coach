@@ -1508,11 +1508,10 @@ Una versión con prueba de cámara externa.
 
 
 
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
+#############################################################################################################################################
+#############################################################################################################################################
+#############################################################################################################################################
+
 
 quiero hacer una aplicacion que me ayude con mis ejercicios que nombre le puedo colocar al repositorio?
 ChatGPT Plus
@@ -2028,3 +2027,1191 @@ Este proyecto está bajo la licencia MIT. Consulta el archivo LICENSE
 
 Si quieres, te puedo ayudar a generar el `requirements.txt` o armar una versión base del `main.py` que conecte todo. ¿Te interesa eso también?
 
+#############################################################################################################################################
+#############################################################################################################################################
+#############################################################################################################################################
+import cv2
+import mediapipe as mp
+import numpy as np
+import pyttsx3
+import math
+
+# Inicializar TTS
+engine = pyttsx3.init()
+engine.setProperty('rate', 160)
+
+# Inicializar MediaPipe Pose
+mp_drawing = mp.solutions.drawing_utils
+mp_pose = mp.solutions.pose
+
+# Función para calcular el ángulo entre tres puntos
+def calculate_angle(a, b, c):
+    a = np.array(a)  # Cadera
+    b = np.array(b)  # Rodilla
+    c = np.array(c)  # Tobillo
+
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - \
+              np.arctan2(a[1] - b[1], a[0] - b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+
+    if angle > 180.0:
+        angle = 360 - angle
+
+    return angle
+
+# Inicializar variables
+counter = 0
+stage = None  # "arriba" o "abajo"
+
+# Hablar
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+# Captura de cámara
+# cap = cv2.VideoCapture(0) # Para macOS/Linux
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) # Para Windows
+
+with mp_pose.Pose(min_detection_confidence=0.5,
+                  min_tracking_confidence=0.5) as pose:
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Recolor a RGB
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
+
+        # Hacer detección
+        results = pose.process(image)
+
+        # Volver a BGR para OpenCV
+        image.flags.writeable = True
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        try:
+            landmarks = results.pose_landmarks.landmark
+
+            # Puntos clave: Cadera, rodilla, tobillo derechos
+            hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
+                   landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+            knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x,
+                    landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+            ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x,
+                     landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+            angle = calculate_angle(hip, knee, ankle)
+
+            # Mostrar ángulo en pantalla
+            cv2.putText(image, f'Angulo: {int(angle)}',
+                        (50, 50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+            # Lógica de sentadillas
+            if angle < 90:
+                stage = "abajo"
+            if angle > 150 and stage == "abajo":
+                stage = "arriba"
+                counter += 1
+                print(f"Repetición: {counter}")
+                speak(f"Repetición {counter}")
+
+        except Exception as e:
+            print("Error:", e)
+
+        # Mostrar contador
+        cv2.rectangle(image, (0, 0), (225, 73), (245, 117, 16), -1)
+        cv2.putText(image, 'Reps', (15, 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+        cv2.putText(image, str(counter),
+                    (10, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
+
+        # Mostrar resultado
+        cv2.imshow('Entrenamiento Inteligente - Sentadillas', image)
+
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+
+cap.release()
+cv2.destroyAllWindows()
+
+
+ChatGPT Plus
+
+Tu código es una implementación funcional y bien estructurada para contar repeticiones de sentadillas usando MediaPipe y OpenCV, con retroalimentación por voz gracias a pyttsx3. Aquí va un breve análisis y algunas sugerencias para mejorarlo
+
+Tú dijiste:
+ python main.py
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+W0000 00:00:1756128590.123684   18020 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1756128590.136599    9948 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+Error: 'NoneType' object has no attribute 'landmark'
+ChatGPT Plus
+
+El error 'NoneType' object has no attribute 'landmark' indica que el objeto results.pose_landmarks está devolviendo None. Esto ocurre cuando MediaPipe no detecta el cuerpo en la imagen actual (es decir, no detecta suficientes puntos clave de la pose).
+
+🔍 ¿Qué significa esto?
+
+En esta línea:
+
+landmarks = results.pose_landmarks.landmark
+
+
+estás asumiendo que results.pose_landmarks siempre contiene un resultado válido, pero si no hay una persona bien visible en la cámara, o si la detección falla momentáneamente, esa variable será None, lo que lanza el error.
+
+✅ Solución
+
+Debes verificar que results.pose_landmarks no sea None antes de acceder a .landmark. Aquí está la forma correcta de hacerlo:
+
+try:
+    if results.pose_landmarks:
+        landmarks = results.pose_landmarks.landmark
+
+        # Puntos clave: Cadera, rodilla, tobillo derechos
+        hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
+               landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+        knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x,
+                landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+        ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x,
+                 landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+        angle = calculate_angle(hip, knee, ankle)
+
+        # Mostrar ángulo en pantalla
+        cv2.putText(image, f'Angulo: {int(angle)}',
+                    (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        # Lógica de sentadillas
+        if angle < 90:
+            stage = "abajo"
+        if angle > 150 and stage == "abajo":
+            stage = "arriba"
+            counter += 1
+            print(f"Repetición: {counter}")
+            speak(f"Repetición {counter}")
+except Exception as e:
+    print("Error:", e)
+
+🧪 Recomendaciones adicionales
+
+Buena iluminación: asegúrate de tener buena luz para que la detección funcione correctamente.
+
+Ubicación frente a la cámara: que todo el cuerpo (al menos el lado derecho) esté visible y centrado.
+
+Mayor resolución: si puedes, aumenta la resolución del VideoCapture con:
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+
+¿Quieres que te ayude a agregar una advertencia en pantalla cuando no se detecte la pose?
+
+Tú dijiste:
+Que sugerencias tienes para mejorarlo?
+ChatGPT Plus
+
+Tu script ya cumple una función útil y está bien estructurado para contar repeticiones de sentadillas con seguimiento por cámara usando MediaPipe. Sin embargo, hay varias formas en que podrías mejorarlo o expandirlo según tus objetivos. Aquí tienes sugerencias organizadas por categoría:
+
+✅ 1. Robustez y manejo de errores
+
+✅ Evitar errores por NoneType (como ya discutimos).
+
+🔔 Mostrar mensaje en pantalla si no se detecta la pose:
+
+if results.pose_landmarks is None:
+    cv2.putText(image, 'Persona no detectada',
+                (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+🧠 2. Detección más precisa del movimiento
+
+🔁 Usar ambas piernas (izquierda y derecha) para validar si realmente se hizo una sentadilla completa.
+
+📉 Agregar un suavizado (smoothing) del ángulo usando una media móvil para evitar errores por ruido o pequeñas variaciones:
+
+from collections import deque
+angle_history = deque(maxlen=5)
+# luego...
+angle_history.append(angle)
+smoothed_angle = sum(angle_history) / len(angle_history)
+
+🗣️ 3. Mejoras en la retroalimentación hablada
+
+📢 Mensajes más informativos, como:
+
+“¡Buena forma!” si el ángulo baja bastante.
+
+“Baja más” si el ángulo mínimo no es suficientemente bajo.
+
+⏳ Evitar hablar cada repetición, solo cada 5 por ejemplo, o dar un resumen al final.
+
+🎨 4. Interfaz visual más clara
+
+🟢 Agrega un círculo/indicador de color que cambie según el estado (abajo / arriba).
+
+📊 Muestra un gráfico o barra de progreso con el ángulo de la rodilla.
+
+🧍‍♂️ Dibuja la silueta del cuerpo con MediaPipe:
+
+mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+
+📈 5. Rendimiento y precisión
+
+🧠 Usa static_image_mode=False (que ya está bien por defecto).
+
+🧪 Ajusta min_detection_confidence y min_tracking_confidence si la cámara es de baja calidad.
+
+🚀 Opcional: usa modelos TFLite acelerados con GPU si necesitas más FPS.
+
+🧩 6. Ampliaciones futuras
+
+🏋️‍♂️ Soporte para otros ejercicios (flexiones, zancadas, etc.).
+
+🧠 Guardar repeticiones, duración y errores en un archivo de estadísticas (.csv o JSON).
+
+📲 Exportar como una app de escritorio (usando PyInstaller) o incluso móvil (con Kivy o Flutter + TFLite).
+
+🎥 Grabar el video con overlay para revisión posterior:
+
+out = cv2.VideoWriter('output.avi', ...)
+out.write(image)
+
+🛠️ ¿Quieres algo ya implementado?
+
+Puedo ayudarte a:
+
+Agregar la validación de sentadillas con ambas piernas.
+
+Incluir la retroalimentación visual de progreso de la sentadilla.
+
+Guardar estadísticas del entrenamiento (tiempo, repeticiones, etc.).
+
+Solo dime qué prefieres priorizar.
+
+Tú dijiste:
+Ohhhh excelentes sugerencias... me gusto, Robustez y manejo de errores, Detección más precisa del movimiento, Mejoras en la retroalimentación hablada, Interfaz visual más clara, Rendimiento y precisión, Agrega otros ejercicios flexiones, zancadas..., Grabar el video con overlay para revisión posterior y Exportar como una app móvil por favor dame el código completo y si crear diferentes archivo para que main.py no sea tan largo me das los nombres que deben tener los archivos
+ChatGPT Plus
+
+¡Perfecto! Para implementar todas esas mejoras y mantener el código limpio, modular y fácil de mantener, lo mejor es dividirlo en varios archivos. Aquí te doy una estructura organizada con los nombres de los archivos y lo que contiene cada uno:
+
+🗂️ Estructura del Proyecto
+smart_trainer/
+│
+├── main.py                      # Ejecuta la app
+├── video_recorder.py           # Maneja grabación de video
+├── pose_utils.py               # Funciones para MediaPipe y ángulos
+├── feedback.py                 # Retroalimentación hablada y visual
+├── exercise_logic.py           # Lógica de ejercicios (sentadillas, flexiones, etc.)
+├── config.py                   # Configuración general
+└── assets/                     # Recursos (audios, modelos, etc.)
+
+1. main.py
+
+Este archivo orquesta todo: captura video, ejecuta lógica de ejercicios, dibuja en pantalla, etc.
+
+from pose_utils import setup_mediapipe, get_keypoints, calculate_angle
+from exercise_logic import process_squat
+from feedback import give_feedback, draw_overlay
+from video_recorder import VideoRecorder
+import cv2
+
+from config import VIDEO_WIDTH, VIDEO_HEIGHT
+
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_HEIGHT)
+
+pose = setup_mediapipe()
+recorder = VideoRecorder("output.avi", VIDEO_WIDTH, VIDEO_HEIGHT)
+
+counter = 0
+stage = None
+
+with pose as pose_estimator:
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        landmarks, image = get_keypoints(frame, pose_estimator)
+
+        if landmarks:
+            angle, stage, counter = process_squat(landmarks, stage, counter)
+            give_feedback(angle, stage, counter)
+            draw_overlay(image, angle, counter, stage)
+        else:
+            cv2.putText(image, "Persona no detectada", (50, 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+        recorder.write(image)
+        cv2.imshow("Smart Trainer", image)
+
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+
+cap.release()
+recorder.release()
+cv2.destroyAllWindows()
+
+2. pose_utils.py
+
+Funciones de MediaPipe y cálculo de ángulos.
+
+import mediapipe as mp
+import numpy as np
+import cv2
+
+mp_pose = mp.solutions.pose
+mp_drawing = mp.solutions.drawing_utils
+
+def setup_mediapipe():
+    return mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+def get_keypoints(frame, pose):
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image.flags.writeable = False
+    results = pose.process(image)
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    if results.pose_landmarks:
+        landmarks = results.pose_landmarks.landmark
+        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        return landmarks, image
+    else:
+        return None, image
+
+def calculate_angle(a, b, c):
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
+
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - \
+              np.arctan2(a[1] - b[1], a[0] - b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+    return 360 - angle if angle > 180 else angle
+
+3. exercise_logic.py
+
+Lógica del ejercicio de sentadillas (puedes agregar otros como flexiones, etc.).
+
+from pose_utils import calculate_angle
+import mediapipe as mp
+
+pose = mp.solutions.pose
+
+def process_squat(landmarks, stage, counter):
+    hip = [landmarks[pose.PoseLandmark.RIGHT_HIP.value].x,
+           landmarks[pose.PoseLandmark.RIGHT_HIP.value].y]
+    knee = [landmarks[pose.PoseLandmark.RIGHT_KNEE.value].x,
+            landmarks[pose.PoseLandmark.RIGHT_KNEE.value].y]
+    ankle = [landmarks[pose.PoseLandmark.RIGHT_ANKLE.value].x,
+             landmarks[pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+    angle = calculate_angle(hip, knee, ankle)
+
+    if angle < 90:
+        stage = "abajo"
+    if angle > 150 and stage == "abajo":
+        stage = "arriba"
+        counter += 1
+
+    return angle, stage, counter
+
+4. feedback.py
+
+Manejo de voz y visualización.
+
+import pyttsx3
+import cv2
+
+engine = pyttsx3.init()
+engine.setProperty('rate', 160)
+last_spoken_rep = -1
+
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def give_feedback(angle, stage, counter):
+    global last_spoken_rep
+    if counter > last_spoken_rep:
+        if counter % 5 == 0:
+            speak(f"{counter} repeticiones completadas")
+        last_spoken_rep = counter
+
+def draw_overlay(image, angle, counter, stage):
+    cv2.putText(image, f'Ángulo: {int(angle)}', (10, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    cv2.putText(image, f'Reps: {counter}', (10, 80),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(image, f'Etapa: {stage}', (10, 120),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+
+5. video_recorder.py
+
+Graba el video con superposición.
+
+import cv2
+
+class VideoRecorder:
+    def __init__(self, filename, width, height):
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.writer = cv2.VideoWriter(filename, fourcc, 20.0, (width, height))
+
+    def write(self, frame):
+        self.writer.write(frame)
+
+    def release(self):
+        self.writer.release()
+
+6. config.py
+
+Parámetros reutilizables.
+
+VIDEO_WIDTH = 640
+VIDEO_HEIGHT = 480
+
+7. Futuras expansiones
+
+Para agregar más ejercicios (como flexiones, zancadas), puedes hacer:
+
+# En exercise_logic.py
+
+def process_pushup(landmarks, stage, counter):
+    # lógica para flexiones
+    return angle, stage, counter
+
+
+¿Te gustaría que empaquetemos esto como una app móvil usando, por ejemplo, Kivy o Flutter + TFLite en pasos más adelante? ¿O prefieres primero dejar esto funcionando en escritorio?
+
+Tú dijiste:
+Que Estructura del Proyecto es mejor? esta me habias dadon cuando comence:
+
+virtual-coach/
+│
+├── core/                      # Lógica principal del entrenamiento
+│   ├── pose_estimation.py     # Detección de postura con MediaPipe
+│   ├── rep_counter.py         # Lógica para contar repeticiones
+│   ├── angle_utils.py         # Cálculo de ángulos entre articulaciones
+│   └── feedback_audio.py      # Voz y retroalimentación sonora
+│
+├── interface/                 # Interfaz de usuario (UI)
+│   ├── gui_tkinter.py         # Interfaz con Tkinter
+│   ├── web_streamlit.py       # Interfaz web con Streamlit
+│   └── assets/                # Iconos, sonidos, imágenes, etc.
+│
+├── data/                      # Almacenamiento de estadísticas y sesiones
+│   ├── logs/
+│   └── user_sessions.json
+│
+├── smartwatch_integration/    # API y herramientas para Google Fit
+│   └── google_fit_api.py
+│
+├── tests/                     # Scripts de pruebas unitarias
+│   └── test_pose_estimation.py
+│
+├── README.md                  # Este archivo
+├── requirements.txt           # Dependencias del proyecto
+├── main.py                    # Script principal para correr el sistema
+└── LICENSE                    # Licencia del proyecto (MIT)
+ó este?
+smart_trainer/
+│
+├── main.py                      # Ejecuta la app
+├── video_recorder.py           # Maneja grabación de video
+├── pose_utils.py               # Funciones para MediaPipe y ángulos
+├── feedback.py                 # Retroalimentación hablada y visual
+├── exercise_logic.py           # Lógica de ejercicios (sentadillas, flexiones, etc.)
+├── config.py                   # Configuración general
+└── assets/                     # Recursos (audios, modelos, etc.)
+
+Actualmente solo tengo virtual-coach/ y dentro .gitignore, LICENSEm main.py, README.md y requirements.txt
+
+informacion sobre lo que estoy haciendo:
+🧠 Objetivo General del Proyecto
+
+Crear un sistema inteligente que te permita:
+
+Planificar y registrar tus entrenamientos.
+
+Usar la cámara para detectar y corregir tu postura.
+
+Contar repeticiones automáticamente.
+
+Dar retroalimentación por voz (feedback en tiempo real).
+
+(Opcional) Integrar datos de un smartwatch para monitorear ritmo cardíaco, calorías, etc.
+
+🔧 Vamos por partes...
+🔹 1. Sistema de Visión con Corrección de Postura y Recuento de Repeticiones
+
+Puedes hacer un prototipo en Python con:
+
+📦 Librerías necesarias:
+
+mediapipe – Para detectar articulaciones.
+
+opencv-python – Para usar la webcam.
+
+pyttsx3 o gTTS – Para que el sistema hable.
+
+numpy – Para calcular ángulos y lógica.
+
+(Opcional) pygame o sounddevice – Para feedback sonoro adicional.
+
+🧠 Lógica general:
+
+Detectar puntos clave del cuerpo.
+
+Calcular ángulos (por ejemplo, rodilla, cadera).
+
+Detectar si bajaste y subiste correctamente (condiciones → contar repetición).
+
+Dar retroalimentación auditiva: “¡Muy bien! Rep 3”, “Baja más”, etc.
+🔹 2. App o Interfaz de Usuario
+
+Podrías crear una interfaz que:
+
+Permita seleccionar el tipo de ejercicio.
+
+Muestre video en tiempo real con correcciones.
+
+Lleve cuenta de repeticiones y tiempo.
+
+Guarde las estadísticas del día.
+
+Posibles frameworks:
+
+Tkinter o PyQt (para escritorio)
+
+Streamlit (si quieres hacerlo web local fácilmente)
+
+(Más adelante) migrarlo a React Native si deseas una app móvil completa.
+
+🔹 3. Integración con tu smartwatch (Mi Watch XMWTCL02)
+
+Este modelo (Mi Watch XMWTCL02) es de Xiaomi, y no tiene una API pública oficial, pero aquí tienes opciones:
+
+📌 Opción 1: Exportar datos desde la app Mi Fitness (antes Xiaomi Wear)
+
+Puedes exportar los datos manualmente desde la app a Google Fit o Apple Health, luego extraerlos desde ahí.
+
+Algunas herramientas no oficiales acceden a los datos si das permisos (más avanzado).
+
+📌 Opción 2: Acceso indirecto con Google Fit API
+
+Vincula Mi Watch a Google Fit.
+
+Usa la Google Fit REST API
+ para obtener datos como:
+
+Ritmo cardíaco
+
+Pasos
+
+Calorías
+
+Tiempo activo
+
+Esto se puede usar para enriquecer tu sistema: mostrar datos fisiológicos junto con el video de tu entrenamiento.
+
+Crear el prototipo de detección de ejercicio en Python (con cámara y voz).
+
+Luego le agregas una interfaz para seleccionar tipo de ejercicio.
+
+Más adelante integras los datos del reloj vía Google Fit si es posible. 
+(Más adelante) migrarlo a React Native para una app móvil completa, eso me gustaria
+ChatGPT Plus
+
+Gracias por compartir el contexto completo del proyecto. Con base en tu visión, la estructura más robusta y escalable para lo que estás construyendo es definitivamente la primera:
+
+✅ Usa esta estructura: virtual-coach/ (la modular)
+virtual-coach/
+│
+├── core/                      # 🔧 Lógica del entrenamiento
+│   ├── pose_estimation.py     # Detección de postura con MediaPipe
+│   ├── rep_counter.py         # Conteo de repeticiones (varios ejercicios)
+│   ├── angle_utils.py         # Cálculo de ángulos entre articulaciones
+│   └── feedback_audio.py      # Voz y retroalimentación sonora
+│
+├── interface/                 # 🖥️ Interfaces del usuario
+│   ├── gui_tkinter.py         # Interfaz con Tkinter (escritorio)
+│   ├── web_streamlit.py       # Interfaz web con Streamlit
+│   └── assets/                # Iconos, sonidos, modelos, etc.
+│
+├── data/                      # 📊 Datos del usuario
+│   ├── logs/                  # Logs del sistema
+│   └── user_sessions.json     # Historial de sesiones
+│
+├── smartwatch_integration/    # 🧠 Datos biométricos
+│   └── google_fit_api.py      # Comunicación con Google Fit
+│
+├── tests/                     # 🧪 Pruebas unitarias
+│   └── test_pose_estimation.py
+│
+├── main.py                    # 🚀 Punto de entrada
+├── requirements.txt           # 📦 Dependencias
+├── README.md                  # 📘 Instrucciones del proyecto
+└── LICENSE                    # 📄 Licencia
+
+🧠 ¿Por qué esta estructura es mejor para tu caso?
+Criterio	virtual-coach/ ✅	smart_trainer/ ❌
+Escalabilidad	Alta (módulos claros)	Limitada si crece
+Múltiples interfaces (Tk, web)	Soportado	No estructurado para eso
+Soporte para varios ejercicios	Más fácil de integrar	Puede volverse caótico
+Datos del usuario persistentes	Dedicado en /data/	Tendrías que agregarlo luego
+Integración con smartwatch	Tiene un módulo dedicado	Tendrías que reestructurar
+Preparación para app móvil	Muy bien estructurado	Requiere migración
+🛠️ Siguientes pasos recomendados
+
+✅ Mantén la estructura virtual-coach/
+
+🧱 Crea carpetas y archivos vacíos según la estructura
+
+📦 Empieza a mover y dividir el código actual (main.py) en módulos dentro de /core/
+
+🧪 Agrega pruebas unitarias en /tests/ (opcional ahora, útil después).
+
+🌐 Cuando avances a interfaz gráfica o web, usa /interface/.
+
+🕹️ Luego puedes conectar smartwatch vía /smartwatch_integration/.
+
+¿Quieres que te prepare esta estructura con todos los archivos .py listos para comenzar (esqueleto funcional)?
+
+Puedo generarte todos los archivos base, con funciones mínimas, rutas y comentarios para que simplemente los llenes con tu lógica actual. ¿Te gustaría?
+
+Tú dijiste:
+Si por favor, me gustaría eso, además agregar otros ejercicios como flexiones, zancadas, planchas, abdominales
+ChatGPT Plus
+
+¡Perfecto! A continuación, te dejaré una descripción clara de cómo quedará la estructura de archivos y carpetas de tu proyecto virtual-coach, incluyendo soporte para varios ejercicios como sentadillas, flexiones, zancadas, planchas y abdominales.
+
+🗂️ Estructura de Archivos Generada
+virtual-coach/
+│
+├── core/
+│   ├── pose_estimation.py       # Detección de postura con MediaPipe
+│   ├── rep_counter.py           # Contador de repeticiones por ejercicio
+│   ├── angle_utils.py           # Cálculo de ángulos
+│   └── feedback_audio.py        # Feedback por voz
+│
+├── exercises/
+│   ├── squats.py                # Lógica de sentadillas
+│   ├── pushups.py               # Lógica de flexiones
+│   ├── lunges.py                # Lógica de zancadas
+│   ├── planks.py                # Lógica de planchas
+│   └── crunches.py              # Lógica de abdominales
+│
+├── interface/
+│   ├── gui_tkinter.py           # UI de escritorio
+│   ├── web_streamlit.py         # UI web
+│   └── assets/                  # Iconos, modelos, sonidos
+│
+├── data/
+│   ├── logs/
+│   └── user_sessions.json
+│
+├── smartwatch_integration/
+│   └── google_fit_api.py        # Conexión con Google Fit
+│
+├── tests/
+│   ├── test_pose_estimation.py
+│   └── test_rep_counter.py
+│
+├── main.py                      # Punto de entrada del sistema
+├── config.py                    # Parámetros globales
+├── requirements.txt             # Dependencias del proyecto
+├── README.md                    # Descripción del proyecto
+└── LICENSE                      # Licencia
+
+✅ ¿Qué incluirá cada archivo?
+
+Te prepararé cada archivo con una estructura básica y comentarios para que puedas enfocarte en llenar la lógica. Ejemplo:
+
+core/rep_counter.py (extracto de ejemplo)
+from exercises.squats import count_squat
+from exercises.pushups import count_pushup
+from exercises.lunges import count_lunge
+from exercises.planks import monitor_plank
+from exercises.crunches import count_crunch
+
+def process_exercise(exercise_type, landmarks, stage, counter):
+    if exercise_type == "squat":
+        return count_squat(landmarks, stage, counter)
+    elif exercise_type == "pushup":
+        return count_pushup(landmarks, stage, counter)
+    elif exercise_type == "lunge":
+        return count_lunge(landmarks, stage, counter)
+    elif exercise_type == "plank":
+        return monitor_plank(landmarks, stage, counter)
+    elif exercise_type == "crunch":
+        return count_crunch(landmarks, stage, counter)
+    else:
+        return None, stage, counter
+
+¿Qué sigue?
+
+👉 Te puedo generar todos estos archivos listos con su contenido base en un solo ZIP para descargar o los podemos ir generando por partes aquí.
+¿Qué prefieres?
+
+🔁 ¿Generar el proyecto completo aquí en partes, empezando por /core/?
+
+📦 ¿Quieres que lo prepare como un proyecto ZIP descargable?
+
+Avísame cómo quieres avanzar.
+
+Tú dijiste:
+dame el código completo en base a la nueva Estructura virtual-coach/ por favor
+ChatGPT Plus
+
+Perfecto, como no puedo crear directamente carpetas ni archivos en tu sistema desde aquí, te daré el código completo dividido por archivos basado en la estructura virtual-coach/. Solo necesitas copiar y pegar el contenido en archivos .py correspondientes en tu proyecto.
+
+🗂️ Estructura General del Proyecto
+virtual-coach/
+│
+├── main.py
+├── config.py
+├── requirements.txt
+├── LICENSE
+├── README.md
+│
+├── core/
+│   ├── pose_estimation.py
+│   ├── angle_utils.py
+│   ├── feedback_audio.py
+│   └── rep_counter.py
+│
+├── exercises/
+│   ├── squats.py
+│   ├── pushups.py
+│   ├── lunges.py
+│   ├── planks.py
+│   └── crunches.py
+│
+├── interface/
+│   ├── gui_tkinter.py
+│   ├── web_streamlit.py
+│   └── assets/
+│
+├── data/
+│   ├── logs/
+│   └── user_sessions.json
+│
+├── smartwatch_integration/
+│   └── google_fit_api.py
+│
+└── tests/
+    ├── test_pose_estimation.py
+    └── test_rep_counter.py
+
+1. main.py
+from core.pose_estimation import get_keypoints, setup_mediapipe
+from core.rep_counter import process_exercise
+from core.feedback_audio import give_feedback
+from config import VIDEO_WIDTH, VIDEO_HEIGHT, EXERCISE_TYPE
+import cv2
+
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_HEIGHT)
+
+counter = 0
+stage = None
+
+with setup_mediapipe() as pose:
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        landmarks, image = get_keypoints(frame, pose)
+
+        if landmarks:
+            angle, stage, counter = process_exercise(EXERCISE_TYPE, landmarks, stage, counter)
+            give_feedback(angle, stage, counter, image)
+        else:
+            cv2.putText(image, "Persona no detectada", (50, 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+        cv2.imshow("Virtual Coach", image)
+
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+
+cap.release()
+cv2.destroyAllWindows()
+
+2. config.py
+VIDEO_WIDTH = 640
+VIDEO_HEIGHT = 480
+
+EXERCISE_TYPE = "squat"  # Cambia a pushup, lunge, plank, crunch
+
+3. core/pose_estimation.py
+import cv2
+import mediapipe as mp
+
+mp_pose = mp.solutions.pose
+mp_drawing = mp.solutions.drawing_utils
+
+def setup_mediapipe():
+    return mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+def get_keypoints(frame, pose):
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image.flags.writeable = False
+    results = pose.process(image)
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    if results.pose_landmarks:
+        landmarks = results.pose_landmarks.landmark
+        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        return landmarks, image
+    return None, image
+
+4. core/angle_utils.py
+import numpy as np
+
+def calculate_angle(a, b, c):
+    a = np.array(a)
+    b = np.array(b)
+    c = np.array(c)
+
+    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - \
+              np.arctan2(a[1]-b[1], a[0]-b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+    return 360 - angle if angle > 180 else angle
+
+5. core/rep_counter.py
+from exercises.squats import count_squat
+from exercises.pushups import count_pushup
+from exercises.lunges import count_lunge
+from exercises.planks import monitor_plank
+from exercises.crunches import count_crunch
+
+def process_exercise(exercise_type, landmarks, stage, counter):
+    if exercise_type == "squat":
+        return count_squat(landmarks, stage, counter)
+    elif exercise_type == "pushup":
+        return count_pushup(landmarks, stage, counter)
+    elif exercise_type == "lunge":
+        return count_lunge(landmarks, stage, counter)
+    elif exercise_type == "plank":
+        return monitor_plank(landmarks, stage, counter)
+    elif exercise_type == "crunch":
+        return count_crunch(landmarks, stage, counter)
+    else:
+        return None, stage, counter
+
+6. core/feedback_audio.py
+import pyttsx3
+import cv2
+
+engine = pyttsx3.init()
+engine.setProperty('rate', 160)
+last_spoken = -1
+
+def give_feedback(angle, stage, counter, image):
+    global last_spoken
+    cv2.putText(image, f'Ángulo: {int(angle)}', (10, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    cv2.putText(image, f'Reps: {counter}', (10, 80),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(image, f'Etapa: {stage}', (10, 120),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+
+    if counter > last_spoken and counter % 5 == 0:
+        engine.say(f"{counter} repeticiones completadas")
+        engine.runAndWait()
+        last_spoken = counter
+
+7. Ejemplo de ejercicio: exercises/squats.py
+from core.angle_utils import calculate_angle
+import mediapipe as mp
+
+pose = mp.solutions.pose
+
+def count_squat(landmarks, stage, counter):
+    hip = [landmarks[pose.PoseLandmark.RIGHT_HIP.value].x,
+           landmarks[pose.PoseLandmark.RIGHT_HIP.value].y]
+    knee = [landmarks[pose.PoseLandmark.RIGHT_KNEE.value].x,
+            landmarks[pose.PoseLandmark.RIGHT_KNEE.value].y]
+    ankle = [landmarks[pose.PoseLandmark.RIGHT_ANKLE.value].x,
+             landmarks[pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+    angle = calculate_angle(hip, knee, ankle)
+
+    if angle < 90:
+        stage = "abajo"
+    if angle > 150 and stage == "abajo":
+        stage = "arriba"
+        counter += 1
+
+    return angle, stage, counter
+
+8. Los otros ejercicios (pushups.py, lunges.py, etc.)
+
+Puedo darte el código específico de cada uno si lo deseas ahora, o podemos avanzar con uno por uno para afinar la lógica.
+
+¿Quieres que ahora complete el contenido de los demás archivos como pushups.py, lunges.py, planks.py, crunches.py, etc.?
+¿O prefieres probar este primer esqueleto básico primero?
+
+Tú dijiste:
+Quiero los demás archivos como pushups.py, lunges.py, planks.py, crunches.py, etc.
+ChatGPT Plus
+
+Perfecto. Aquí tienes la lógica básica para los otros ejercicios en la carpeta exercises/. Cada archivo contiene una función count_<ejercicio> que calcula el ángulo apropiado y determina cuándo contar una repetición o detectar postura (en el caso de planchas).
+
+📁 exercises/pushups.py
+from core.angle_utils import calculate_angle
+import mediapipe as mp
+
+pose = mp.solutions.pose
+
+def count_pushup(landmarks, stage, counter):
+    shoulder = [landmarks[pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                landmarks[pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+    elbow = [landmarks[pose.PoseLandmark.RIGHT_ELBOW.value].x,
+             landmarks[pose.PoseLandmark.RIGHT_ELBOW.value].y]
+    wrist = [landmarks[pose.PoseLandmark.RIGHT_WRIST.value].x,
+             landmarks[pose.PoseLandmark.RIGHT_WRIST.value].y]
+
+    angle = calculate_angle(shoulder, elbow, wrist)
+
+    if angle < 90:
+        stage = "abajo"
+    if angle > 160 and stage == "abajo":
+        stage = "arriba"
+        counter += 1
+
+    return angle, stage, counter
+
+📁 exercises/lunges.py
+from core.angle_utils import calculate_angle
+import mediapipe as mp
+
+pose = mp.solutions.pose
+
+def count_lunge(landmarks, stage, counter):
+    hip = [landmarks[pose.PoseLandmark.LEFT_HIP.value].x,
+           landmarks[pose.PoseLandmark.LEFT_HIP.value].y]
+    knee = [landmarks[pose.PoseLandmark.LEFT_KNEE.value].x,
+            landmarks[pose.PoseLandmark.LEFT_KNEE.value].y]
+    ankle = [landmarks[pose.PoseLandmark.LEFT_ANKLE.value].x,
+             landmarks[pose.PoseLandmark.LEFT_ANKLE.value].y]
+
+    angle = calculate_angle(hip, knee, ankle)
+
+    if angle < 90:
+        stage = "abajo"
+    if angle > 160 and stage == "abajo":
+        stage = "arriba"
+        counter += 1
+
+    return angle, stage, counter
+
+📁 exercises/planks.py
+
+Las planchas no se cuentan como repeticiones, pero se puede monitorear la alineación del cuerpo.
+
+from core.angle_utils import calculate_angle
+import mediapipe as mp
+
+pose = mp.solutions.pose
+
+def monitor_plank(landmarks, stage, counter):
+    shoulder = [landmarks[pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                landmarks[pose.PoseLandmark.LEFT_SHOULDER.value].y]
+    hip = [landmarks[pose.PoseLandmark.LEFT_HIP.value].x,
+           landmarks[pose.PoseLandmark.LEFT_HIP.value].y]
+    ankle = [landmarks[pose.PoseLandmark.LEFT_ANKLE.value].x,
+             landmarks[pose.PoseLandmark.LEFT_ANKLE.value].y]
+
+    angle = calculate_angle(shoulder, hip, ankle)
+
+    if 160 <= angle <= 180:
+        stage = "buena postura"
+    else:
+        stage = "mala postura"
+
+    # No se cuenta repeticiones, pero se retorna el estado de la postura
+    return angle, stage, counter
+
+📁 exercises/crunches.py
+from core.angle_utils import calculate_angle
+import mediapipe as mp
+
+pose = mp.solutions.pose
+
+def count_crunch(landmarks, stage, counter):
+    shoulder = [landmarks[pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                landmarks[pose.PoseLandmark.LEFT_SHOULDER.value].y]
+    hip = [landmarks[pose.PoseLandmark.LEFT_HIP.value].x,
+           landmarks[pose.PoseLandmark.LEFT_HIP.value].y]
+    knee = [landmarks[pose.PoseLandmark.LEFT_KNEE.value].x,
+            landmarks[pose.PoseLandmark.LEFT_KNEE.value].y]
+
+    angle = calculate_angle(shoulder, hip, knee)
+
+    if angle < 100:
+        stage = "abajo"
+    if angle > 140 and stage == "abajo":
+        stage = "arriba"
+        counter += 1
+
+    return angle, stage, counter
+
+✅ ¿Qué sigue?
+
+Puedes probar cada ejercicio cambiando EXERCISE_TYPE en config.py.
+
+Asegúrate de que tu cámara esté enfocando la parte del cuerpo relevante para cada ejercicio.
+
+¿Quieres que te agregue una interfaz para seleccionar ejercicio (Tkinter o Streamlit) en el próximo paso?
+
+Puedo generar eso también. ¿Te gustaría?
+
+Tú dijiste:
+Si por favor
+ChatGPT Plus
+
+Genial. Para que puedas seleccionar el tipo de ejercicio fácilmente sin editar el código manualmente, aquí tienes una interfaz sencilla usando Tkinter.
+
+🖼️ Interfaz Gráfica con Tkinter – interface/gui_tkinter.py
+import tkinter as tk
+from tkinter import messagebox
+import subprocess
+import sys
+import os
+
+def run_main_with_exercise(exercise_type):
+    with open("config.py", "w") as f:
+        f.write(f'VIDEO_WIDTH = 640\nVIDEO_HEIGHT = 480\nEXERCISE_TYPE = "{exercise_type}"\n')
+
+    python_exe = sys.executable
+    subprocess.Popen([python_exe, "main.py"])
+
+def start_ui():
+    root = tk.Tk()
+    root.title("Virtual Coach - Selecciona un ejercicio")
+
+    tk.Label(root, text="Selecciona el ejercicio:", font=("Arial", 14)).pack(pady=10)
+
+    exercises = ["squat", "pushup", "lunge", "plank", "crunch"]
+
+    for ex in exercises:
+        tk.Button(root, text=ex.capitalize(),
+                  command=lambda e=ex: run_main_with_exercise(e),
+                  width=20, height=2).pack(pady=5)
+
+    tk.Button(root, text="Salir", command=root.destroy, bg="red", fg="white").pack(pady=10)
+
+    root.mainloop()
+
+if __name__ == "__main__":
+    start_ui()
+
+▶️ Cómo usar la interfaz
+
+Asegúrate de tener todos los archivos en tu estructura virtual-coach/.
+
+Abre una terminal en esa carpeta.
+
+Ejecuta:
+
+python interface/gui_tkinter.py
+
+
+Aparecerá una ventana donde puedes elegir: Sentadillas, Flexiones, Zancadas, Planchas o Abdominales.
+
+Al elegir uno, se sobreescribe config.py con ese ejercicio y se ejecuta automáticamente main.py.
+
+📝 Notas adicionales
+
+Asegúrate de que main.py lea EXERCISE_TYPE desde config.py (ya lo hace).
+
+Esta es una interfaz simple pero efectiva para prototipos.
+
+Más adelante puedes hacer una versión web con Streamlit o convertirla en app con React Native/Kivy.
+
+¿Quieres que te dé también la versión con Streamlit como alternativa web?
+
+Tú dijiste:
+Me das la versión con Streamlit para ver que tal por favor
+ChatGPT Plus
+Responder en el chat en su lugar
+
+Para poder ver y usar el código completo en Streamlit (u otros archivos interactivos), necesitas iniciar sesión en ChatGPT.
+
+Una vez que lo hagas, podré mostrarte directamente el código editable en el canvas. Mientras tanto, aquí te dejo el contenido del archivo interface/web_streamlit.py para que lo copies tú mismo:
+
+🌐 Interfaz Web con Streamlit – interface/web_streamlit.py
+import streamlit as st
+import subprocess
+import sys
+import os
+
+EXERCISES = {
+    "Sentadillas": "squat",
+    "Flexiones": "pushup",
+    "Zancadas": "lunge",
+    "Planchas": "plank",
+    "Abdominales": "crunch"
+}
+
+st.set_page_config(page_title="Virtual Coach Web", layout="centered")
+
+st.title("🤖 Virtual Coach")
+st.markdown("Selecciona un ejercicio para comenzar:")
+
+selected = st.selectbox("Ejercicio", list(EXERCISES.keys()))
+
+if st.button("Iniciar"):
+    exercise_type = EXERCISES[selected]
+
+    with open("config.py", "w") as f:
+        f.write(f'VIDEO_WIDTH = 640\nVIDEO_HEIGHT = 480\nEXERCISE_TYPE = "{exercise_type}"\n')
+
+    python_exe = sys.executable
+    subprocess.Popen([python_exe, "main.py"])
+    st.success(f"Iniciando ejercicio: {selected}...")
+
+st.markdown("---")
+st.caption("© 2025 Virtual Coach - OpenAI Inspired")
+
+▶️ ¿Cómo ejecutarlo?
+
+Instala Streamlit (si no lo has hecho):
+
+pip install streamlit
+
+
+Corre el archivo desde terminal:
+
+streamlit run interface/web_streamlit.py
+
+
+Se abrirá una interfaz web local en tu navegador.
+
+Seleccionas el ejercicio y automáticamente se ejecuta main.py.
+
+¿Te gustaría que más adelante esta interfaz también muestre video o feedback visual directamente desde la web? Puedo ayudarte a escalarlo si quieres.

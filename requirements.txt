@@ -27,3 +27,6 @@ scipy==1.16.1
 sentencepiece==0.2.1
 six==1.17.0
 sounddevice==0.5.2
+
+# alternativa web
+streamlit==1.48.1

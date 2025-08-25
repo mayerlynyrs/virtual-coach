@@ -77,6 +77,7 @@ def main():
     
     # Usar la configuración que sabemos que funciona
     cap = cv2.VideoCapture(0)  # DirectShow backend
+    # cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) # Para Windows
     
     if not cap.isOpened():
         print("❌ Error: No se pudo abrir la cámara")

@@ -103,8 +103,15 @@ virtual-coach/
 │   ├── angle_utils.py         # Cálculo de ángulos entre articulaciones
 │   └── feedback_audio.py      # Voz y retroalimentación sonora
 │
+├── exercises/
+│   ├── squats.py                # Lógica de sentadillas
+│   ├── pushups.py               # Lógica de flexiones
+│   ├── lunges.py                # Lógica de zancadas
+│   ├── planks.py                # Lógica de planchas
+│   └── crunches.py              # Lógica de abdominales
+│
 ├── interface/                 # Interfaz de usuario (UI)
-│   ├── gui_tkinter.py         # Interfaz con Tkinter
+│   ├── gui_tkinter.py         # Interfaz con Tkinter, UI de escritorio
 │   ├── web_streamlit.py       # Interfaz web con Streamlit
 │   └── assets/                # Iconos, sonidos, imágenes, etc.
 │
@@ -113,12 +120,13 @@ virtual-coach/
 │   └── user_sessions.json
 │
 ├── smartwatch_integration/    # API y herramientas para Google Fit
-│   └── google_fit_api.py
+│   └── google_fit_api.py      # Conexión con Google Fit
 │
 ├── tests/                     # Scripts de pruebas unitarias
 │   └── test_pose_estimation.py
 │
-├── README.md                  # Este archivo
+├── config.py                  # Parámetros globales
+├── README.md                  # Este archivo - Descripción del proyecto
 ├── requirements.txt           # Dependencias del proyecto
 ├── main.py                    # Script principal para correr el sistema
 └── LICENSE                    # Licencia del proyecto (MIT)
@@ -153,3 +161,13 @@ Probar con --privileged: A veces, Docker necesita privilegios adicionales para a
 
 `docker-compose up --build`
 
+
+# Streamlit
+## ▶️ ¿Cómo ejecutarlo?
+`streamlit run interface/web_streamlit.py`
+
+Se abrirá una interfaz web local en tu navegador.
+```
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.0.157:8501
+```
